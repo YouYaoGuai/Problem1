@@ -25,36 +25,40 @@ public:
   {
     pthread_mutex_init(&mutex_queue,NULL);
     pthread_cond_init(&msg_flag,NULL);
-    sem_init(&msg_queue_count,0,msg_size);
+    // sem_init(&msg_queue_count,0,(msg_size + 1));
     sem_init(&msg_queue_empty,0,0);
   } 
-  int push_msg(DataType &d)
+  void push_msg(DataType &d)
   {
     /*Wait on the queue semaphore,if its value is positive,indicating the queue is not full,decrement 1*/
     /*lock the queue,push message to queue*/
-    sem_wait(&msg_queue_count);
-    pthread_mutex_lock(&mutex_queue);
-    msg_queue.push(d);
-    /*let all the threads pend know there are something new been push into the queue*/
-    pthread_cond_broadcast(&msg_flag);
-    sem_post(&msg_queue_empty);
-    pthread_mutex_unlock(&mutex_queue);
-    return 0;
+    //sem_wait(&msg_queue_count);
+    if((msg_queue.size()) >= msg_size)
+      {
+	pthread_cond_broadcast(&msg_flag);
+      }
+    else
+      {
+	pthread_mutex_lock(&mutex_queue);
+	msg_queue.push(d);
+	/*let all the threads pend know there are something new been push into the queue*/
+	pthread_cond_broadcast(&msg_flag);
+	sem_post(&msg_queue_empty);
+	pthread_mutex_unlock(&mutex_queue);
+      }
   }
-  int pop_msg(DataType &d)
-  {	
+  void pop_msg(DataType &d)
+  {
     /*judge if there is any message,if no message,pend*/
     sem_wait(&msg_queue_empty);
     pthread_mutex_lock(&mutex_queue);
-    /*if message queue is full, don't block on condition variable,just pop from the queue*/
     pthread_cond_wait(&msg_flag,&mutex_queue);
     /*when get here,there must be some message in the queue*/
     d = msg_queue.front();
     msg_queue.pop();
     /*Post to the semaphore to indicate producer thread push available*/
-    sem_post(&msg_queue_count);
-    pthread_mutex_unlock(&mutex_queue); 
-    return 0;
+    //sem_post(&msg_queue_count);
+    pthread_mutex_unlock(&mutex_queue);
   }
   /*destructor run will destroy the object referenced by pthread_mutex_t or the pthread_cond_t*/
   /*After it completes,the synthesized destructor would also run to destroy the members of the class*/
@@ -65,12 +69,14 @@ public:
     assert(error == 0);
     error = pthread_cond_destroy(&msg_flag);
     assert(error == 0);
+    error = sem_destroy(&msg_queue_empty);
+    assert(error == 0);
   }
 private:
   pthread_cond_t msg_flag;
   pthread_mutex_t mutex_queue;
   queue<DataType> msg_queue;
-  sem_t msg_queue_count;
+  //sem_t msg_queue_count;
   sem_t msg_queue_empty;
   unsigned int msg_size;
 };
@@ -110,10 +116,9 @@ void *producer(void* arg)
 	  break;
 	}
       printf("[%lu]:ready to push_msg\n",pthread_self());
-      /*push_msg return 1 so the queue is full,block*/
       queue->push_msg(i);
-      printf("[%lu]:push message done\n",pthread_self());
-      i++;	
+      printf("[%lu]:push message done\n",pthread_self());	
+      i++;
     }
 }
 
@@ -123,7 +128,7 @@ int main()
   int iterator;
   /*consumer threads number & producer threads number*/
   const int number_c = 7;
-  const int number_p = 21;
+  const int number_p = 42;
   pthread_t k[number_c+number_p];
   pthread_t consumer_pool[number_c]; 
   printf("create %d consumer.............\n",number_c);
