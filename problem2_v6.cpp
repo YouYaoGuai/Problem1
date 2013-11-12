@@ -59,7 +59,7 @@ public:
     /*consume one message wake up one  productor*/
     if((msg_queue.size()) == queue_size)
       {
-	pthread_cond_signal(&msg_avail);
+	pthread_cond_broadcast(&msg_avail);
       }
     d = msg_queue.front();
     msg_queue.pop();
