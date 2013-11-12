@@ -56,10 +56,13 @@ public:
   {
     pthread_mutex_lock(&mutex_queue);
     pthread_cond_wait(&msg_flag,&mutex_queue);
+    /*consume one message wake up productors*/
+    if((msg_queue.size()) == queue_size)
+      {
+	pthread_cond_broadcast(&msg_avail);
+      }
     d = msg_queue.front();
     msg_queue.pop();
-    /*consume one message wake up one productor*/
-    pthread_cond_signal(&msg_avail);
     pthread_mutex_unlock(&mutex_queue);
   }
   /*destructor run will destroy the object referenced by pthread_mutex_t or the pthread_cond_t*/
@@ -129,7 +132,7 @@ int main()
   int iterator;
   /*consumer threads number & producer threads number*/
   const int number_c = 7;
-  const int number_p = 6;
+  const int number_p = 36;
   pthread_t k[number_c+number_p];
   pthread_t consumer_pool[number_c]; 
   printf("create %d consumer.............\n",number_c);
