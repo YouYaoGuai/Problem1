@@ -44,7 +44,7 @@ public:
     else
       {
 	msg_queue.push(d);
-	/*producer product one msg wake up one consumer*/
+	/*judge if there are some messages in the queue*/
 	if(msg_queue.size() > 0)
 	  {
 	    pthread_cond_broadcast(&msg_flag);
