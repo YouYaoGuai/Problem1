@@ -2,23 +2,23 @@
 
 #define OK 0
 #define ERROR 1
+#define MAX 100
 
 typedef struct
 {
-  char* element;
+  char element[MAX];
   int length;
 }SqList;
 
 int ListDelete(SqList *p,int position)
 {
   int j = 0;
-  char *elem = p->element;
   if(position < 1 || position >( p->length - 1))
     return ERROR;
   else
     {
       for(j = position;j <= (p->length - 1);j++)
-	*(elem + j) = *(elem+j+1);
+	*(p->element + j) = *(p->element + j + 1);
       --p->length;
       return OK;
     }
